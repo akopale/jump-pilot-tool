@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JUMP Framework — Task Roadmap Tool</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #1D9E75; --green-light: #E1F5EE; --green-dark: #0F6E56;
+    --purple-light: #EEEDFE; --purple: #534AB7;
+    --amber-light: #FAEEDA; --amber: #854F0B;
+    --coral-light: #FAECE7; --coral: #993C1D;
+    --gray-light: #F5F4F1; --gray-mid: #E4E3DF; --gray-border: #D3D1C9; --gray-text: #6B6A66;
+    --text: #1A1A18; --bg: #FFFFFF; --card-bg: #F9F8F5;
+    --blue-light: #E6F1FB; --blue: #0C447C;
+    --slate-light: #F0EFF8; --slate: #3D3A6B;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .site-header { background: var(--text); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+  .site-header .logo { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: .08em; text-transform: uppercase; }
+  .site-header .hdivider { width: 1px; height: 20px; background: #444; flex-shrink: 0; }
+  .site-header .htitle { font-size: 13px; color: #aaa; cursor: pointer; transition: color .15s; }
+  .site-header .htitle:hover { color: #fff; }
+  .site-header .spacer { flex: 1; }
+  .feedback-trigger-btn { background: #fff; color: var(--text); border: none; border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; transition: opacity .15s; }
+  .feedback-trigger-btn:hover { opacity: .85; }
+
+  .main { max-width: 700px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  h2 { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--gray-text); margin-bottom: 24px; line-height: 1.6; }
+
+  /* Cards */
+  .card { background: var(--card-bg); border-radius: 12px; padding: 22px; margin-bottom: 16px; border: 1px solid var(--gray-mid); }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; }
+
+  /* Steps */
+  .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .step-label { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* Form */
+  label { display: block; font-size: 13px; color: var(--gray-text); margin-bottom: 6px; margin-top: 16px; }
+  label:first-of-type { margin-top: 0; }
+  input[type=text], textarea, select { width: 100%; padding: 10px 13px; border-radius: 8px; border: 1px solid var(--gray-border); background: #fff; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s; -webkit-appearance: none; }
+  input[type=text]:focus, textarea:focus, select:focus { border-color: var(--green); }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; border-radius: 8px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--gray-border); }
+  .btn-save { background: var(--blue-light); color: var(--blue); border: 1px solid #B8D4F4; }
+  .btn-discussion { background: var(--slate); color: #fff; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+
+  /* Role toggle */
+  .role-toggle { display: flex; gap: 8px; margin-bottom: 22px; }
+  .role-btn { flex: 1; padding: 13px; border-radius: 8px; border: 1px solid var(--gray-border); background: #fff; color: var(--gray-text); font-size: 14px; font-weight: 500; cursor: pointer; text-align: center; font-family: inherit; transition: all .15s; }
+  .role-btn.active { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
+
+  .back-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--gray-text); background: none; border: none; cursor: pointer; font-family: inherit; padding: 0; margin-bottom: 22px; }
+  .back-btn:hover { color: var(--text); }
+
+  /* Submission / roadmap cards */
+  .sub-card { background: #fff; border-radius: 10px; padding: 16px; border: 1px solid var(--gray-mid); cursor: pointer; transition: border-color .15s, box-shadow .15s; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sub-card:hover { border-color: var(--green); box-shadow: 0 2px 8px rgba(29,158,117,.08); }
+  .sub-card.no-click { cursor: default; opacity: .7; }
+  .sub-card.no-click:hover { border-color: var(--gray-mid); box-shadow: none; }
+  .sub-card-left { flex: 1; min-width: 0; }
+  .sub-card-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .sub-card-meta { font-size: 12px; color: var(--gray-text); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; white-space: nowrap; }
+  .badge-draft { background: var(--gray-light); color: var(--gray-text); }
+  .badge-submitted { background: var(--amber-light); color: var(--amber); }
+  .badge-reviewed { background: var(--purple-light); color: var(--purple); }
+  .badge-complete { background: var(--blue-light); color: var(--blue); }
+  .badge-discussion { background: var(--slate-light); color: var(--slate); }
+
+  /* Review steps */
+  .review-step { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--gray-mid); }
+  .field-label { font-size: 11px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; margin-top: 12px; }
+  .field-label:first-of-type { margin-top: 0; }
+  .field-value { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 4px; }
+  .field-empty { font-style: italic; color: var(--gray-text); }
+  .comment-section { margin-top: 14px; border-top: 1px solid var(--gray-mid); padding-top: 12px; }
+  .comment-section label { font-size: 12px; color: var(--gray-text); margin-top: 0; margin-bottom: 6px; }
+  .comment-section textarea { min-height: 56px; font-size: 13px; }
+  .reviewer-comment-display { background: var(--slate-light); border-radius: 6px; padding: 10px 12px; font-size: 13px; color: var(--slate); line-height: 1.6; margin-top: 10px; }
+  .reviewer-comment-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--slate); margin-bottom: 4px; }
+
+  /* Banners */
+  .success-banner { background: var(--green-light); color: var(--green-dark); border-radius: 8px; padding: 13px 16px; font-size: 14px; margin-top: 16px; line-height: 1.5; }
+  .save-banner { background: var(--blue-light); color: var(--blue); border-radius: 8px; padding: 11px 14px; font-size: 13px; margin-top: 10px; line-height: 1.5; }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-text); font-size: 14px; }
+  .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* Homepage flow */
+  .jump-banner { background: var(--slate); border-radius: 12px; padding: 22px 24px; margin-bottom: 24px; color: #fff; }
+  .jump-banner .jump-label { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; opacity: .6; margin-bottom: 6px; }
+  .jump-banner h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+  .jump-banner p { font-size: 13px; opacity: .8; line-height: 1.6; }
+
+  .process-flow { display: flex; flex-direction: column; gap: 0; margin-bottom: 24px; }
+  .flow-step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--gray-mid); position: relative; }
+  .flow-step:first-child { border-radius: 10px 10px 0 0; }
+  .flow-step:last-child { border-radius: 0 0 10px 10px; }
+  .flow-step + .flow-step { border-top: none; }
+  .flow-step-num { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .flow-step-content { flex: 1; }
+  .flow-step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .flow-step-desc { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
+  .flow-checkin { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 3px 9px; border-radius: 99px; }
+
+  /* Discussion */
+  .discussion-header { background: var(--slate); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; color: #fff; }
+  .discussion-header h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .discussion-header p { font-size: 13px; opacity: .75; }
+  .discussion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 560px) { .discussion-grid { grid-template-columns: 1fr; } }
+  .discussion-col { border-radius: 10px; overflow: hidden; border: 1px solid var(--gray-mid); }
+  .discussion-col-header { padding: 12px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .col-doer .discussion-col-header { background: var(--green-light); color: var(--green-dark); }
+  .col-midlevel .discussion-col-header { background: var(--slate-light); color: var(--slate); }
+  .discussion-col-body { padding: 14px 16px; background: #fff; }
+  .disc-field { margin-bottom: 14px; }
+  .disc-field:last-child { margin-bottom: 0; }
+  .disc-field-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--gray-text); margin-bottom: 4px; }
+  .disc-field-value { font-size: 13px; color: var(--text); line-height: 1.55; }
+  .disc-empty { font-style: italic; color: var(--gray-text); font-size: 13px; }
+  .discussion-prompt-card { background: #FFFBF0; border: 1px solid #F0E4B0; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .discussion-prompt-card h3 { font-size: 13px; font-weight: 600; color: #7A5C00; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .discussion-prompt-card ul { padding-left: 18px; }
+  .discussion-prompt-card li { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 2px; }
+  .section-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 20px; }
+  .section-divider span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--gray-text); white-space: nowrap; }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-mid); }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; padding: 28px; width: 100%; max-width: 500px; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .modal .modal-sub { font-size: 13px; color: var(--gray-text); margin-bottom: 22px; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+
+  /* Feedback cards */
+  .feedback-card { background: #FDE8F5; border: 1px solid #F4B8E0; border-radius: 10px; padding: 16px; margin-bottom: 10px; }
+  .feedback-card-name { font-size: 14px; font-weight: 600; color: #5A0F3C; }
+  .feedback-card-meta { font-size: 12px; color: #9A3870; margin-top: 2px; margin-bottom: 10px; }
+  .feedback-card-body { font-size: 14px; color: var(--text); line-height: 1.6; }
+  .feedback-card-rating { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: #7A1B55; background: #fff; border-radius: 6px; padding: 3px 10px; border: 1px solid #F4B8E0; }
+
+  /* New roadmap button */
+  .new-roadmap-btn-row { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <span class="logo">CDM Smith</span>
+  <div class="hdivider"></div>
+  <span class="htitle" onclick="goHome()">Elevate Cohort 6 — Pilot Tool</span>
+  <div class="spacer"></div>
+  <button class="feedback-trigger-btn" onclick="openFeedbackModal()">💬 Submit feedback on this pilot process</button>
+</header>
+
+<div class="main">
+
+  <!-- HOME -->
+  <div id="screen-home">
+    <div class="jump-banner">
+      <div class="jump-label">Elevate Cohort 6</div>
+      <h2>The JUMP Framework</h2>
+      <p>Judgment, Understanding, Mentorship, and Professional Growth — a coaching-based approach that combines AI-enabled delivery, structured reflection, and mentor feedback to accelerate the development of professional judgment and core technical skills.</p>
+    </div>
+    <h2 style="margin-bottom:6px">Task Roadmap Tool</h2>
+    <p class="page-sub">This tool supports the JUMP pilot by guiding doer through a structured planning process before starting a task, and giving reviewers a consistent framework for coaching conversations.</p>
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">How the pilot works</div>
+      <div class="process-flow">
+        <div class="flow-step">
+          <span class="flow-step-num" style="background:var(--green-light);color:var(--green-dark)">1</span>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Initial check-in</div>
+            <div class="flow-step-desc">Doer and reviewer align on the task, available tools, and objectives before work begins — the same way they typically would for any task. <em>This step happens outside of this tool — no action required here.</em></div>
+            <span class="flow-checkin" style="background:var(--green-light);color:var(--green-dark)">Reviewer + doer</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-step-num" style="background:var(--purple-light);color:var(--purple)">2</span>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Doer completes task roadmap — this tool <span style="font-weight:400;color:var(--gray-text);font-size:13px">· 10–15 min</span></div>
+            <div class="flow-step-desc">Before starting work, the doer fills out a structured plan covering the task, data sources, AI tools, expected outcome, and any questions or concerns.</div>
+            <span class="flow-checkin" style="background:var(--purple-light);color:var(--purple)">Doer submits here</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-step-num" style="background:var(--coral-light);color:var(--coral)">3</span>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Reviewer reviews roadmap <span style="font-weight:400;color:var(--gray-text);font-size:13px">· ~10 min</span></div>
+            <div class="flow-step-desc">Reviewer looks over the doer's plan and adds comments on each section to prepare for the coaching conversation.</div>
+            <span class="flow-checkin" style="background:var(--coral-light);color:var(--coral)">Reviewer reviews here</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-step-num" style="background:var(--slate-light);color:var(--slate)">4</span>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Discussion <span style="font-weight:400;color:var(--gray-text);font-size:13px">· 15–30 min</span></div>
+            <div class="flow-step-desc">Doer and reviewer meet to discuss the plan side by side. Focus on alignment, open questions, coaching, and how the doer plans to use AI tools.</div>
+            <span class="flow-checkin" style="background:var(--slate-light);color:var(--slate)">Reviewer + doer</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <span class="flow-step-num" style="background:var(--amber-light);color:var(--amber)">5</span>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Doer attempts task with AI support</div>
+            <div class="flow-step-desc">With alignment established, the doer executes the task using AI tools as planned. Sources and assumptions are documented along the way.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Get started</div>
+      <div class="role-toggle">
+        <button class="role-btn active" id="role-doer" onclick="setRole('doer')">Doer</button>
+        <button class="role-btn" id="role-midlevel" onclick="setRole('midlevel')">Reviewer</button>
+      </div>
+      <label for="user-name">Your name</label>
+      <input type="text" id="user-name" placeholder="First and last name" />
+      <div class="btn-row"><button class="btn btn-primary" onclick="enterTool()">Continue →</button></div>
+    </div>
+  </div>
+
+  <!-- JUNIOR DASHBOARD -->
+  <div id="screen-doer-dashboard" style="display:none">
+    <button class="back-btn" onclick="goHome()">← Back</button>
+    <h1 id="dashboard-heading">My roadmaps</h1>
+    <p class="page-sub">Pick up where you left off, or start a new roadmap.</p>
+    <div class="new-roadmap-btn-row">
+      <button class="btn btn-primary" onclick="startNewRoadmap()">+ Start new roadmap</button>
+    </div>
+    <div id="doer-roadmap-list"></div>
+  </div>
+
+  <!-- JUNIOR FORM -->
+  <div id="screen-doer" style="display:none">
+    <button class="back-btn" onclick="showDoerDashboard()">← My roadmaps</button>
+    <h1 id="doer-heading">Task roadmap</h1>
+    <p class="page-sub" id="doer-form-sub">Fill this out before starting your work. Your reviewer will see your plan alongside the final deliverable.</p>
+
+    <div class="card" style="border: 2px solid var(--slate); background: var(--slate-light);">
+      <label for="j-project-name" style="color:var(--slate);font-weight:600">Project / roadmap title</label>
+      <input type="text" id="j-project-name" placeholder="e.g. Stormwater Project — Technical Memo" />
+    </div>
+
+    <div class="card">
+      <div class="step-header"><span class="step-num" style="background:var(--green-light);color:var(--green-dark)">1</span><span class="step-label">The task</span></div>
+      <label for="j-task-name">What task are you working on?</label>
+      <input type="text" id="j-task-name" placeholder="e.g. Draft technical memo for stormwater project" />
+      <label for="j-task-purpose">What is its purpose within the project?</label>
+      <textarea id="j-task-purpose" placeholder="Briefly describe why this task matters and who it's for…"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-header"><span class="step-num" style="background:var(--purple-light);color:var(--purple)">2</span><span class="step-label">The data</span></div>
+      <label for="j-data">What inputs, sources, or reference material do you plan to draw on?</label>
+      <textarea id="j-data" placeholder="e.g. Prior project reports, GIS layers, client-provided specs, field notes…"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-header"><span class="step-num" style="background:var(--amber-light);color:var(--amber)">3</span><span class="step-label">The tools</span></div>
+      <label for="j-tools">What AI tools do you plan to use, if any?</label>
+      <textarea id="j-tools" placeholder="e.g. Claude to help draft structure, Copilot for editing…"></textarea>
+      <label for="j-tools-purpose">What will you use AI for specifically?</label>
+      <textarea id="j-tools-purpose" placeholder="e.g. First draft of intro — I'll review and rewrite based on my own analysis…"></textarea>
+      <label for="j-tools-limits">What are the limitations of this AI tool you should be aware of for this task?</label>
+      <textarea id="j-tools-limits" placeholder="e.g. May hallucinate citations, doesn't have access to internal project data, output needs technical validation before use…"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-header"><span class="step-num" style="background:var(--coral-light);color:var(--coral)">4</span><span class="step-label">The expected outcome</span></div>
+      <label for="j-outcome">What should this task produce?</label>
+      <input type="text" id="j-outcome" placeholder="e.g. A 2-page technical memo ready for reviewer" />
+      <label for="j-quality">What are the expectations for this deliverable?</label>
+      <textarea id="j-quality" placeholder="e.g. Follows client template, assumptions clearly documented, reviewed for accuracy before submission…"></textarea>
+      <label for="j-sowhat">What value does this deliverable provide — and to whom?</label>
+      <textarea id="j-sowhat" placeholder="e.g. The client uses this to make a permitting decision, so the recommendation needs to be defensible and clearly explained…"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="step-header"><span class="step-num" style="background:var(--gray-light);color:var(--gray-text)">5</span><span class="step-label">Anything else?</span></div>
+      <label for="j-notes">Questions, concerns, or things you're unsure about going into this task</label>
+      <textarea id="j-notes" placeholder="e.g. Not sure how to handle missing data for certain parcels. Wondering if the output format needs to match the client's existing template…" style="min-height:100px"></textarea>
+    </div>
+
+    <div id="reviewer-comments-section" style="display:none">
+      <div class="section-divider"><span>Reviewer comments</span></div>
+      <div id="reviewer-comments-inner"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-save" id="save-draft-btn" onclick="saveRoadmap('draft')">Save draft</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="saveRoadmap('submitted')">Submit roadmap</button>
+    </div>
+    <div id="submit-feedback"></div>
+  </div>
+
+  <!-- REVIEW LIST -->
+  <div id="screen-review-list" style="display:none">
+    <button class="back-btn" onclick="goHome()">← Back</button>
+    <h1>Submitted roadmaps</h1>
+    <p class="page-sub">Select a submitted roadmap to review. Drafts are visible but locked until the doer submits.</p>
+    <div style="margin-bottom:16px;position:relative">
+      <input type="text" id="search-input" placeholder="Search by doer name…" oninput="filterSubmissions()" style="padding-left:36px" />
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-text);font-size:15px;pointer-events:none">🔍</span>
+    </div>
+    <div id="submissions-list-inner"></div>
+    <div id="feedback-list-section"></div>
+  </div>
+
+  <!-- REVIEW DETAIL -->
+  <div id="screen-review-detail" style="display:none">
+    <button class="back-btn" onclick="showReviewList()">← All submissions</button>
+    <div id="review-detail-inner"></div>
+  </div>
+
+  <!-- DISCUSSION VIEW -->
+  <div id="screen-discussion" style="display:none">
+    <button class="back-btn" onclick="showReviewList()">← All submissions</button>
+    <div id="discussion-inner"></div>
+  </div>
+
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedback-modal">
+  <div class="modal">
+    <h2>Feedback on the pilot process</h2>
+    <p class="modal-sub">Share what's working, what isn't, or anything the pilot team should know. This goes directly to the Elevate Cohort 6 team.</p>
+    <label for="fb-name">Your name</label>
+    <input type="text" id="fb-name" placeholder="First and last name" />
+    <label for="fb-role">Your role in the pilot</label>
+    <input type="text" id="fb-role" placeholder="e.g. Doer, Reviewer" />
+    <label for="fb-rating">How is the process feeling so far?</label>
+    <select id="fb-rating">
+      <option value="">Select one…</option>
+      <option>👍 Working well</option>
+      <option>🤔 Mixed — some things work, some don't</option>
+      <option>⚠️ Needs adjustment</option>
+      <option>💡 Have a suggestion</option>
+    </select>
+    <label for="fb-comments">Your thoughts</label>
+    <textarea id="fb-comments" placeholder="What's working? What's not? What would make this more useful?" style="min-height:110px"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitFeedback()">Submit feedback</button>
+    </div>
+    <div id="fb-success" style="display:none" class="success-banner">✓ Feedback submitted — thank you!</div>
+  </div>
+</div>
+
+<script>
+  // Storage
+  const memStore = {};
+  function storeSet(key, value) {
+    memStore[key] = value;
+    try { localStorage.setItem(key, value); } catch(e) {}
+  }
+  function storeGet(key) {
+    if (memStore[key]) return memStore[key];
+    try { const v = localStorage.getItem(key); if (v) { memStore[key] = v; return v; } } catch(e) {}
+    return null;
+  }
+  function storeList(prefix) {
+    const keys = new Set(Object.keys(memStore).filter(k => k.startsWith(prefix)));
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(prefix)) keys.add(k); } } catch(e) {}
+    return Array.from(keys);
+  }
+
+  // State
+  let currentRole = "doer";
+  let currentUser = '';
+  let currentSubKey = null;
+  let allSubmissions = [];
+
+  const SCREENS = ['screen-home','screen-doer-dashboard','screen-doer','screen-review-list','screen-review-detail','screen-discussion'];
+  function showScreen(id) { SCREENS.forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none'); }
+  function goHome() { showScreen('screen-home'); }
+
+  function setRole(r) {
+    currentRole = r;
+    document.getElementById('role-doer').classList.toggle('active', r === 'doer');
+    document.getElementById('role-midlevel').classList.toggle('active', r === 'midlevel');
+  }
+
+  function enterTool() {
+    const name = document.getElementById('user-name').value.trim();
+    if (!name) { alert('Please enter your name to continue.'); return; }
+    currentUser = name;
+    if (currentRole === "doer") {
+      showDoerDashboard();
+    } else {
+      showReviewList();
+    }
+  }
+
+  // ── JUNIOR DASHBOARD ──
+  function showDoerDashboard() {
+    showScreen('screen-doer-dashboard');
+    document.getElementById('dashboard-heading').textContent = currentUser + '\u2019s roadmaps';
+    const el = document.getElementById('doer-roadmap-list');
+    const prefix = 'submission:' + currentUser.replace(/\s+/g,'-').toLowerCase() + ':';
+    const keys = storeList('submission:').filter(k => k.startsWith(prefix));
+    if (!keys.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No roadmaps yet. Click "Start new roadmap" to begin.</p></div>';
+      return;
+    }
+    el.innerHTML = '';
+    const items = [];
+    for (const k of keys) {
+      try { const val = storeGet(k); if (val) items.push({ k, d: JSON.parse(val) }); } catch(e) {}
+    }
+    items.sort((a, b) => {
+      const rank = { draft: 0, submitted: 1, reviewed: 2, complete: 3 };
+      return (rank[a.d.status] || 0) - (rank[b.d.status] || 0);
+    });
+    for (const { k, d } of items) {
+      const div = document.createElement('div');
+      div.className = 'sub-card';
+      div.innerHTML = `
+        <div class="sub-card-left">
+          <div class="sub-card-name">${d.projectName || d.task || 'Untitled roadmap'}${badgeFor(d.status)}</div>
+          <div class="sub-card-meta">${d.task || ''} &middot; ${d.submittedAt}</div>
+        </div>`;
+      div.onclick = () => openDoerRoadmap(k);
+      el.appendChild(div);
+    }
+  }
+
+  function startNewRoadmap() {
+    currentSubKey = null;
+    clearDoerForm();
+    document.getElementById('doer-heading').textContent = 'New task roadmap';
+    document.getElementById('doer-form-sub').textContent = 'Fill this out before starting your work. Your reviewer will see your plan alongside the final deliverable.';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').textContent = 'Submit roadmap';
+    document.getElementById('save-draft-btn').style.display = '';
+    document.getElementById('reviewer-comments-section').style.display = 'none';
+    document.getElementById('submit-feedback').innerHTML = '';
+    showScreen('screen-doer');
+  }
+
+  function openDoerRoadmap(key) {
+    currentSubKey = key;
+    const val = storeGet(key);
+    if (!val) return;
+    const d = JSON.parse(val);
+    clearDoerForm();
+    document.getElementById('j-project-name').value = d.projectName || '';
+    document.getElementById('j-task-name').value = d.task || '';
+    document.getElementById('j-task-purpose').value = d.taskPurpose || '';
+    document.getElementById('j-data').value = d.data || '';
+    document.getElementById('j-tools').value = d.tools || '';
+    document.getElementById('j-tools-purpose').value = d.toolsPurpose || '';
+    document.getElementById('j-tools-limits').value = d.toolsLimits || '';
+    document.getElementById('j-outcome').value = d.outcome || '';
+    document.getElementById('j-quality').value = d.quality || '';
+    document.getElementById('j-sowhat').value = d.sowhat || '';
+    document.getElementById('j-notes').value = d.notes || '';
+    document.getElementById('doer-heading').textContent = d.projectName || d.task || 'Task roadmap';
+    document.getElementById('submit-feedback').innerHTML = '';
+
+    const isSubmitted = d.status !== 'draft';
+    // Lock form if submitted
+    ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
+      document.getElementById(id).disabled = isSubmitted;
+    });
+    document.getElementById('save-draft-btn').style.display = isSubmitted ? 'none' : '';
+    document.getElementById('submit-btn').disabled = isSubmitted;
+    document.getElementById('submit-btn').textContent = isSubmitted ? 'Submitted ✓' : 'Submit roadmap';
+    if (isSubmitted) {
+      document.getElementById('doer-form-sub').textContent = 'This roadmap has been submitted and is now read-only.';
+    }
+
+    // Show reviewer comments if reviewed
+    const hasComments = d.comments && Object.values(d.comments).some(v => v);
+    if (isSubmitted && hasComments) {
+      const sec = document.getElementById('reviewer-comments-section');
+      sec.style.display = 'block';
+      const steps = [
+        { label: 'The task', ck: 'task' },
+        { label: 'The data', ck: 'data' },
+        { label: 'The tools', ck: 'tools' },
+        { label: 'The expected outcome', ck: 'outcome' },
+        { label: 'Questions & concerns', ck: 'notes' }
+      ];
+      let html = '';
+      for (const s of steps) {
+        const c = (d.comments && d.comments[s.ck]) || '';
+        if (!c) continue;
+        html += `<div class="review-step">
+          <div class="field-label">${s.label}</div>
+          <div class="reviewer-comment-label">Reviewer comment</div>
+          <div class="reviewer-comment-display">${c}</div>
+        </div>`;
+      }
+      document.getElementById('reviewer-comments-inner').innerHTML = html || '<p style="font-size:13px;color:var(--gray-text)">No comments yet.</p>';
+    } else {
+      document.getElementById('reviewer-comments-section').style.display = 'none';
+    }
+
+    showScreen('screen-doer');
+  }
+
+  function clearDoerForm() {
+    ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      el.value = '';
+      el.disabled = false;
+    });
+  }
+
+  function saveRoadmap(status) {
+    const taskName = document.getElementById('j-task-name').value.trim();
+    const projectName = document.getElementById('j-project-name').value.trim();
+    if (!projectName && !taskName) { alert('Please fill in a project/roadmap title before saving.'); return; }
+
+    const existing = currentSubKey ? JSON.parse(storeGet(currentSubKey) || '{}') : {};
+    const data = {
+      ...existing,
+      name: currentUser,
+      status,
+      projectName: projectName || taskName,
+      submittedAt: existing.submittedAt || new Date().toLocaleString(),
+      updatedAt: new Date().toLocaleString(),
+      task: taskName,
+      taskPurpose: document.getElementById('j-task-purpose').value.trim(),
+      data: document.getElementById('j-data').value.trim(),
+      tools: document.getElementById('j-tools').value.trim(),
+      toolsPurpose: document.getElementById('j-tools-purpose').value.trim(),
+      toolsLimits: document.getElementById('j-tools-limits').value.trim(),
+      outcome: document.getElementById('j-outcome').value.trim(),
+      quality: document.getElementById('j-quality').value.trim(),
+      sowhat: document.getElementById('j-sowhat').value.trim(),
+      notes: document.getElementById('j-notes').value.trim(),
+      comments: existing.comments || {}
+    };
+
+    if (!currentSubKey) {
+      currentSubKey = 'submission:' + currentUser.replace(/\s+/g,'-').toLowerCase() + ':' + Date.now();
+    }
+    storeSet(currentSubKey, JSON.stringify(data));
+
+    const fb = document.getElementById('submit-feedback');
+    if (status === 'draft') {
+      fb.innerHTML = '<div class="save-banner">✓ Draft saved. You can return to this roadmap at any time from your dashboard.</div>';
+    } else {
+      ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
+        document.getElementById(id).disabled = true;
+      });
+      document.getElementById('save-draft-btn').style.display = 'none';
+      document.getElementById('submit-btn').disabled = true;
+      document.getElementById('submit-btn').textContent = 'Submitted ✓';
+      fb.innerHTML = '<div class="success-banner">✓ Roadmap submitted. Your reviewer can now view and comment on your plan.</div>';
+    }
+  }
+
+  // ── REVIEW LIST ──
+  function badgeFor(status) {
+    const map = {
+      draft: '<span class="badge badge-draft">Draft</span>',
+      submitted: '<span class="badge badge-submitted">Pending review</span>',
+      reviewed: '<span class="badge badge-reviewed">Reviewed</span>',
+      complete: '<span class="badge badge-complete">Complete</span>'
+    };
+    return map[status] || '';
+  }
+
+  function renderSubmissions(filter) {
+    const el = document.getElementById('submissions-list-inner');
+    const term = (filter || '').toLowerCase().trim();
+    const filtered = term ? allSubmissions.filter(s => s.d.name.toLowerCase().includes(term)) : allSubmissions;
+    if (!allSubmissions.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No roadmaps submitted yet. Once a doer member submits their task roadmap, it will appear here.</p></div>';
+      return;
+    }
+    if (!filtered.length) {
+      el.innerHTML = `<div class="empty-state"><p>No results matching <strong>"${filter}"</strong>.</p></div>`;
+      return;
+    }
+    el.innerHTML = '';
+    for (const { k, d } of filtered) {
+      const isDraft = d.status === 'draft';
+      const div = document.createElement('div');
+      div.className = 'sub-card' + (isDraft ? ' no-click' : '');
+      div.innerHTML = `
+        <div class="sub-card-left">
+          <div class="sub-card-name">${d.name}${badgeFor(d.status)}</div>
+          <div class="sub-card-meta">${d.projectName || d.task || 'Untitled'} &middot; ${d.submittedAt}</div>
+        </div>
+        ${isDraft ? '<span style="font-size:12px;color:var(--gray-text);white-space:nowrap">Not yet submitted</span>' : ''}`;
+      if (!isDraft) {
+        div.onclick = () => (d.status === 'reviewed' || d.status === 'complete') ? showDiscussion(k) : showDetail(k);
+      }
+      el.appendChild(div);
+    }
+  }
+
+  function filterSubmissions() {
+    renderSubmissions(document.getElementById('search-input').value);
+  }
+
+  function showReviewList() {
+    showScreen('screen-review-list');
+    const searchEl = document.getElementById('search-input');
+    if (searchEl) searchEl.value = '';
+    allSubmissions = [];
+    for (const k of storeList('submission:')) {
+      try { const val = storeGet(k); if (val) allSubmissions.push({ k, d: JSON.parse(val) }); } catch(e) {}
+    }
+    const rank = { submitted: 0, reviewed: 1, draft: 2, complete: 3 };
+    allSubmissions.sort((a, b) => (rank[a.d.status] || 0) - (rank[b.d.status] || 0));
+    renderSubmissions('');
+
+    const fbSection = document.getElementById('feedback-list-section');
+    const fbKeys = storeList('feedback:');
+    if (fbKeys.length) {
+      let fbHtml = '<div class="section-divider" style="margin-top:32px"><span>Pilot process feedback</span></div>';
+      for (const k of fbKeys) {
+        try {
+          const f = JSON.parse(storeGet(k));
+          fbHtml += `<div class="feedback-card">
+            <div class="feedback-card-name">${f.name}</div>
+            <div class="feedback-card-meta">${f.role} &middot; ${f.submittedAt}</div>
+            <div class="feedback-card-body">${f.comments}</div>
+            ${f.rating ? `<div class="feedback-card-rating">${f.rating}</div>` : ''}
+          </div>`;
+        } catch(e) {}
+      }
+      fbSection.innerHTML = fbHtml;
+    } else {
+      fbSection.innerHTML = '';
+    }
+  }
+
+  // ── REVIEW DETAIL ──
+  function showDetail(key) {
+    currentSubKey = key;
+    showScreen('screen-review-detail');
+    const el = document.getElementById('review-detail-inner');
+    const val = storeGet(key);
+    if (!val) { el.innerHTML = '<p class="empty-state">Could not load this submission.</p>'; return; }
+    const d = JSON.parse(val);
+
+    const steps = [
+      { num:1, bg:'var(--green-light)', tc:'var(--green-dark)', label:'The task', fields:[{l:'Task',v:d.task},{l:'Purpose',v:d.taskPurpose}], ck:'task' },
+      { num:2, bg:'var(--purple-light)', tc:'var(--purple)', label:'The data', fields:[{l:'Inputs & sources',v:d.data}], ck:'data' },
+      { num:3, bg:'var(--amber-light)', tc:'var(--amber)', label:'The tools', fields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.toolsPurpose},{l:'Known limitations',v:d.toolsLimits}], ck:'tools' },
+      { num:4, bg:'var(--coral-light)', tc:'var(--coral)', label:'The expected outcome', fields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value provided — and to whom',v:d.sowhat}], ck:'outcome' },
+      { num:5, bg:'var(--gray-light)', tc:'var(--gray-text)', label:'Questions & concerns', fields:[{l:'Doer\u2019s notes',v:d.notes}], ck:'notes' }
+    ];
+
+    let html = `<h1>${d.name}\u2019s roadmap</h1>
+      <p class="page-sub">${d.projectName || d.task} &middot; ${d.submittedAt} ${badgeFor(d.status)}</p>`;
+
+    for (const s of steps) {
+      const ec = (d.comments && d.comments[s.ck]) || '';
+      html += `<div class="review-step">
+        <div class="step-header"><span class="step-num" style="background:${s.bg};color:${s.tc}">${s.num}</span><span class="step-label">${s.label}</span></div>`;
+      for (const f of s.fields) {
+        html += `<div class="field-label">${f.l}</div><div class="field-value">${f.v || '<span class="field-empty">Not filled in</span>'}</div>`;
+      }
+      html += `<div class="comment-section"><label>Reviewer comment</label>
+        <textarea id="comment-${s.ck}" placeholder="Note anything to discuss\u2026">${ec}</textarea>
+      </div></div>`;
+    }
+
+    html += `<div class="btn-row">
+      <button class="btn btn-save" onclick="saveReview(false)">Save comments</button>
+      <button class="btn btn-discussion" onclick="saveReview(true)">Mark review complete — open discussion view ✓</button>
+    </div><div id="review-feedback" style="margin-top:12px"></div>`;
+    el.innerHTML = html;
+  }
+
+  function saveReview(complete) {
+    const val = storeGet(currentSubKey);
+    if (!val) { alert('Could not load submission.'); return; }
+    const d = JSON.parse(val);
+    d.comments = d.comments || {};
+    ['task','data','tools','outcome','notes'].forEach(k => {
+      const el = document.getElementById('comment-' + k);
+      if (el) d.comments[k] = el.value.trim();
+    });
+    if (complete) d.status = 'reviewed';
+    storeSet(currentSubKey, JSON.stringify(d));
+    if (complete) {
+      showDiscussion(currentSubKey);
+    } else {
+      const fb = document.getElementById('review-feedback');
+      if (fb) { fb.innerHTML = '<div class="save-banner">✓ Comments saved.</div>'; setTimeout(() => { fb.innerHTML = ''; }, 2500); }
+    }
+  }
+
+  // ── DISCUSSION ──
+  function showDiscussion(key) {
+    currentSubKey = key;
+    showScreen('screen-discussion');
+    const el = document.getElementById('discussion-inner');
+    const val = storeGet(key);
+    if (!val) { el.innerHTML = '<p class="empty-state">Could not load this submission.</p>'; return; }
+    const d = JSON.parse(val);
+    const c = d.comments || {};
+
+    const sections = [
+      { label:'The task', jFields:[{l:'Task',v:d.task},{l:'Purpose',v:d.taskPurpose}], ck:'task' },
+      { label:'The data', jFields:[{l:'Inputs & sources',v:d.data}], ck:'data' },
+      { label:'The tools', jFields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.toolsPurpose},{l:'Known limitations',v:d.toolsLimits}], ck:'tools' },
+      { label:'The expected outcome', jFields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value — and to whom',v:d.sowhat}], ck:'outcome' },
+      { label:'Questions & concerns', jFields:[{l:'Doer\u2019s notes',v:d.notes}], ck:'notes' }
+    ];
+
+    let html = `<div class="discussion-header"><h2>Discussion view — ${d.name}</h2><p>${d.projectName || d.task} &middot; Use this together for your 15–30 min planning conversation</p></div>
+      <div class="discussion-prompt-card">
+        <h3>Discussion prompts</h3>
+        <ul>
+          <li>Walk me through your plan — what are you most confident about, and where do you have open questions?</li>
+          <li>What are the biggest risks or unknowns going into this task?</li>
+          <li>Where do you plan to use AI, and what will you do to validate its output?</li>
+        </ul>
+      </div>`;
+
+    for (const s of sections) {
+      const comment = c[s.ck] || '';
+      html += `<div class="section-divider"><span>${s.label}</span></div>
+        <div class="discussion-grid">
+          <div class="discussion-col col-doer"><div class="discussion-col-header">Doer — ${d.name}</div><div class="discussion-col-body">`;
+      for (const f of s.jFields) {
+        html += `<div class="disc-field"><div class="disc-field-label">${f.l}</div><div class="disc-field-value">${f.v || '<span class="disc-empty">Not filled in</span>'}</div></div>`;
+      }
+      html += `</div></div>
+          <div class="discussion-col col-midlevel"><div class="discussion-col-header">Reviewer</div><div class="discussion-col-body">
+            <div class="disc-field"><div class="disc-field-label">Reviewer comment</div>
+              <div class="disc-field-value">${comment || '<span class="disc-empty">No comment added</span>'}</div>
+            </div>
+          </div></div>
+        </div>`;
+    }
+
+    const alreadyComplete = d.status === 'complete';
+    const existingNotes = d.discussionNotes || '';
+    html += `<div class="section-divider"><span>Discussion notes</span></div>
+    <div class="review-step">
+      <div class="field-label">Additional notes</div>
+      ${alreadyComplete
+        ? `<div class="field-value" style="white-space:pre-wrap">${existingNotes || '<span class="field-empty">No notes recorded.</span>'}</div>`
+        : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, coaching notes, or adjustments to the plan agreed on during the discussion…" style="min-height:100px">${existingNotes}</textarea>`
+      }
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-secondary" onclick="showReviewList()">← Back to all submissions</button>
+      ${alreadyComplete
+        ? '<span style="font-size:13px;color:var(--green-dark);font-weight:500;display:inline-flex;align-items:center;gap:6px">✓ Discussion complete</span>'
+        : '<button class="btn btn-primary" onclick="markDiscussionComplete()">Mark discussion complete ✓</button>'
+      }
+    </div>
+    <div id="discussion-complete-feedback" style="margin-top:12px"></div>`;
+    el.innerHTML = html;
+  }
+
+  function markDiscussionComplete() {
+    const val = storeGet(currentSubKey);
+    if (!val) return;
+    const d = JSON.parse(val);
+    d.status = 'complete';
+    const notesEl = document.getElementById('discussion-notes');
+    if (notesEl) { d.discussionNotes = notesEl.value.trim(); notesEl.disabled = true; notesEl.style.opacity = '.7'; }
+    storeSet(currentSubKey, JSON.stringify(d));
+    const fb = document.getElementById('discussion-complete-feedback');
+    if (fb) fb.innerHTML = '<div class="success-banner">✓ Discussion marked complete. This record is now closed.</div>';
+    const btn = document.querySelector('#screen-discussion .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Discussion complete ✓'; }
+  }
+
+  // ── FEEDBACK MODAL ──
+  function openFeedbackModal() {
+    document.getElementById('feedback-modal').classList.add('open');
+    document.getElementById('fb-success').style.display = 'none';
+  }
+  function closeFeedbackModal() { document.getElementById('feedback-modal').classList.remove('open'); }
+  function submitFeedback() {
+    const name = document.getElementById('fb-name').value.trim();
+    const comments = document.getElementById('fb-comments').value.trim();
+    if (!name) { alert('Please enter your name.'); return; }
+    if (!comments) { alert('Please share your thoughts before submitting.'); return; }
+    const data = { name, role: document.getElementById('fb-role').value.trim(), rating: document.getElementById('fb-rating').value, comments, submittedAt: new Date().toLocaleString() };
+    storeSet('feedback:' + name.replace(/\s+/g,'-').toLowerCase() + ':' + Date.now(), JSON.stringify(data));
+    document.getElementById('fb-success').style.display = 'block';
+    setTimeout(() => { closeFeedbackModal(); }, 1800);
+  }
+  document.getElementById('feedback-modal').addEventListener('click', function(e) { if (e.target === this) closeFeedbackModal(); });
+</script>
+</body>
+</html>
