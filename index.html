@@ -368,28 +368,17 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // Storage
-  const memStore = {};
-  function storeSet(key, value) {
-    memStore[key] = value;
-    try { localStorage.setItem(key, value); } catch(e) {}
-  }
-  function storeGet(key) {
-    if (memStore[key]) return memStore[key];
-    try { const v = localStorage.getItem(key); if (v) { memStore[key] = v; return v; } } catch(e) {}
-    return null;
-  }
-  function storeList(prefix) {
-    const keys = new Set(Object.keys(memStore).filter(k => k.startsWith(prefix)));
-    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(prefix)) keys.add(k); } } catch(e) {}
-    return Array.from(keys);
-  }
+  // Supabase
+  const SUPABASE_URL = 'https://rjnfjnwwvvlcpultwrmv.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_tjSroemn2pjR5V-ghN8cOg_ix2RQhWr';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // State
   let currentRole = "doer";
   let currentUser = '';
-  let currentSubKey = null;
+  let currentSubKey = null; // UUID from Supabase
   let allSubmissions = [];
 
   const SCREENS = ['screen-home','screen-doer-dashboard','screen-doer','screen-review-list','screen-review-detail','screen-discussion'];
@@ -413,35 +402,29 @@
     }
   }
 
-  // ── JUNIOR DASHBOARD ──
-  function showDoerDashboard() {
+  function loading(el, msg) { el.innerHTML = `<div class="empty-state"><p>${msg || 'Loading…'}</p></div>`; }
+
+  // ── DOER DASHBOARD ──
+  async function showDoerDashboard() {
     showScreen('screen-doer-dashboard');
     document.getElementById('dashboard-heading').textContent = currentUser + '\u2019s roadmaps';
     const el = document.getElementById('doer-roadmap-list');
-    const prefix = 'submission:' + currentUser.replace(/\s+/g,'-').toLowerCase() + ':';
-    const keys = storeList('submission:').filter(k => k.startsWith(prefix));
-    if (!keys.length) {
+    loading(el, 'Loading your roadmaps…');
+    const { data, error } = await sb.from('submissions').select('*').eq('name', currentUser).order('created_at', { ascending: false });
+    if (error || !data || !data.length) {
       el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No roadmaps yet. Click "Start new roadmap" to begin.</p></div>';
       return;
     }
     el.innerHTML = '';
-    const items = [];
-    for (const k of keys) {
-      try { const val = storeGet(k); if (val) items.push({ k, d: JSON.parse(val) }); } catch(e) {}
-    }
-    items.sort((a, b) => {
-      const rank = { draft: 0, submitted: 1, reviewed: 2, complete: 3 };
-      return (rank[a.d.status] || 0) - (rank[b.d.status] || 0);
-    });
-    for (const { k, d } of items) {
+    for (const d of data) {
       const div = document.createElement('div');
       div.className = 'sub-card';
       div.innerHTML = `
         <div class="sub-card-left">
-          <div class="sub-card-name">${d.projectName || d.task || 'Untitled roadmap'}${badgeFor(d.status)}</div>
-          <div class="sub-card-meta">${d.task || ''} &middot; ${d.submittedAt}</div>
+          <div class="sub-card-name">${d.project_name || d.task || 'Untitled roadmap'}${badgeFor(d.status)}</div>
+          <div class="sub-card-meta">${d.task || ''} &middot; ${new Date(d.created_at).toLocaleString()}</div>
         </div>`;
-      div.onclick = () => openDoerRoadmap(k);
+      div.onclick = () => openDoerRoadmap(d);
       el.appendChild(div);
     }
   }
@@ -459,65 +442,50 @@
     showScreen('screen-doer');
   }
 
-  function openDoerRoadmap(key) {
-    currentSubKey = key;
-    const val = storeGet(key);
-    if (!val) return;
-    const d = JSON.parse(val);
+  function openDoerRoadmap(d) {
+    currentSubKey = d.id;
     clearDoerForm();
-    document.getElementById('j-project-name').value = d.projectName || '';
+    document.getElementById('j-project-name').value = d.project_name || '';
     document.getElementById('j-task-name').value = d.task || '';
-    document.getElementById('j-task-purpose').value = d.taskPurpose || '';
+    document.getElementById('j-task-purpose').value = d.task_purpose || '';
     document.getElementById('j-data').value = d.data || '';
     document.getElementById('j-tools').value = d.tools || '';
-    document.getElementById('j-tools-purpose').value = d.toolsPurpose || '';
-    document.getElementById('j-tools-limits').value = d.toolsLimits || '';
+    document.getElementById('j-tools-purpose').value = d.tools_purpose || '';
+    document.getElementById('j-tools-limits').value = d.tools_limits || '';
     document.getElementById('j-outcome').value = d.outcome || '';
     document.getElementById('j-quality').value = d.quality || '';
     document.getElementById('j-sowhat').value = d.sowhat || '';
     document.getElementById('j-notes').value = d.notes || '';
-    document.getElementById('doer-heading').textContent = d.projectName || d.task || 'Task roadmap';
+    document.getElementById('doer-heading').textContent = d.project_name || d.task || 'Task roadmap';
     document.getElementById('submit-feedback').innerHTML = '';
-
     const isSubmitted = d.status !== 'draft';
-    // Lock form if submitted
     ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
       document.getElementById(id).disabled = isSubmitted;
     });
     document.getElementById('save-draft-btn').style.display = isSubmitted ? 'none' : '';
     document.getElementById('submit-btn').disabled = isSubmitted;
-    document.getElementById('submit-btn').textContent = isSubmitted ? 'Submitted ✓' : 'Submit roadmap';
-    if (isSubmitted) {
-      document.getElementById('doer-form-sub').textContent = 'This roadmap has been submitted and is now read-only.';
-    }
-
-    // Show reviewer comments if reviewed
-    const hasComments = d.comments && Object.values(d.comments).some(v => v);
+    document.getElementById('submit-btn').textContent = isSubmitted ? 'Submitted \u2713' : 'Submit roadmap';
+    if (isSubmitted) document.getElementById('doer-form-sub').textContent = 'This roadmap has been submitted and is now read-only.';
+    const comments = d.comments || {};
+    const hasComments = Object.values(comments).some(v => v);
     if (isSubmitted && hasComments) {
       const sec = document.getElementById('reviewer-comments-section');
       sec.style.display = 'block';
       const steps = [
-        { label: 'The task', ck: 'task' },
-        { label: 'The data', ck: 'data' },
-        { label: 'The tools', ck: 'tools' },
-        { label: 'The expected outcome', ck: 'outcome' },
+        { label: 'The task', ck: 'task' }, { label: 'The data', ck: 'data' },
+        { label: 'The tools', ck: 'tools' }, { label: 'The expected outcome', ck: 'outcome' },
         { label: 'Questions & concerns', ck: 'notes' }
       ];
       let html = '';
       for (const s of steps) {
-        const c = (d.comments && d.comments[s.ck]) || '';
+        const c = comments[s.ck] || '';
         if (!c) continue;
-        html += `<div class="review-step">
-          <div class="field-label">${s.label}</div>
-          <div class="reviewer-comment-label">Reviewer comment</div>
-          <div class="reviewer-comment-display">${c}</div>
-        </div>`;
+        html += `<div class="review-step"><div class="field-label">${s.label}</div><div class="reviewer-comment-label">Reviewer comment</div><div class="reviewer-comment-display">${c}</div></div>`;
       }
       document.getElementById('reviewer-comments-inner').innerHTML = html || '<p style="font-size:13px;color:var(--gray-text)">No comments yet.</p>';
     } else {
       document.getElementById('reviewer-comments-section').style.display = 'none';
     }
-
     showScreen('screen-doer');
   }
 
@@ -529,48 +497,46 @@
     });
   }
 
-  function saveRoadmap(status) {
+  async function saveRoadmap(status) {
     const taskName = document.getElementById('j-task-name').value.trim();
     const projectName = document.getElementById('j-project-name').value.trim();
     if (!projectName && !taskName) { alert('Please fill in a project/roadmap title before saving.'); return; }
-
-    const existing = currentSubKey ? JSON.parse(storeGet(currentSubKey) || '{}') : {};
-    const data = {
-      ...existing,
-      name: currentUser,
-      status,
-      projectName: projectName || taskName,
-      submittedAt: existing.submittedAt || new Date().toLocaleString(),
-      updatedAt: new Date().toLocaleString(),
+    const payload = {
+      name: currentUser, status,
+      project_name: projectName || taskName,
       task: taskName,
-      taskPurpose: document.getElementById('j-task-purpose').value.trim(),
+      task_purpose: document.getElementById('j-task-purpose').value.trim(),
       data: document.getElementById('j-data').value.trim(),
       tools: document.getElementById('j-tools').value.trim(),
-      toolsPurpose: document.getElementById('j-tools-purpose').value.trim(),
-      toolsLimits: document.getElementById('j-tools-limits').value.trim(),
+      tools_purpose: document.getElementById('j-tools-purpose').value.trim(),
+      tools_limits: document.getElementById('j-tools-limits').value.trim(),
       outcome: document.getElementById('j-outcome').value.trim(),
       quality: document.getElementById('j-quality').value.trim(),
       sowhat: document.getElementById('j-sowhat').value.trim(),
       notes: document.getElementById('j-notes').value.trim(),
-      comments: existing.comments || {}
+      updated_at: new Date().toISOString()
     };
-
-    if (!currentSubKey) {
-      currentSubKey = 'submission:' + currentUser.replace(/\s+/g,'-').toLowerCase() + ':' + Date.now();
-    }
-    storeSet(currentSubKey, JSON.stringify(data));
-
     const fb = document.getElementById('submit-feedback');
+    fb.innerHTML = '<div class="save-banner">Saving…</div>';
+    let error;
+    if (currentSubKey) {
+      ({ error } = await sb.from('submissions').update(payload).eq('id', currentSubKey));
+    } else {
+      const { data, error: e } = await sb.from('submissions').insert(payload).select().single();
+      error = e;
+      if (data) currentSubKey = data.id;
+    }
+    if (error) { fb.innerHTML = '<div class="save-banner" style="background:#FCEBEB;color:#A32D2D">\u26A0\uFE0F Could not save — please try again.</div>'; return; }
     if (status === 'draft') {
-      fb.innerHTML = '<div class="save-banner">✓ Draft saved. You can return to this roadmap at any time from your dashboard.</div>';
+      fb.innerHTML = '<div class="save-banner">\u2713 Draft saved. You can return to this roadmap at any time from your dashboard.</div>';
     } else {
       ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
         document.getElementById(id).disabled = true;
       });
       document.getElementById('save-draft-btn').style.display = 'none';
       document.getElementById('submit-btn').disabled = true;
-      document.getElementById('submit-btn').textContent = 'Submitted ✓';
-      fb.innerHTML = '<div class="success-banner">✓ Roadmap submitted. Your reviewer can now view and comment on your plan.</div>';
+      document.getElementById('submit-btn').textContent = 'Submitted \u2713';
+      fb.innerHTML = '<div class="success-banner">\u2713 Roadmap submitted. Your reviewer can now view and comment on your plan.</div>';
     }
   }
 
@@ -588,9 +554,9 @@
   function renderSubmissions(filter) {
     const el = document.getElementById('submissions-list-inner');
     const term = (filter || '').toLowerCase().trim();
-    const filtered = term ? allSubmissions.filter(s => s.d.name.toLowerCase().includes(term)) : allSubmissions;
+    const filtered = term ? allSubmissions.filter(s => s.name.toLowerCase().includes(term)) : allSubmissions;
     if (!allSubmissions.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No roadmaps submitted yet. Once a doer member submits their task roadmap, it will appear here.</p></div>';
+      el.innerHTML = '<div class="empty-state"><div class="icon">\uD83D\uDCCB</div><p>No roadmaps submitted yet. Once a doer submits their task roadmap, it will appear here.</p></div>';
       return;
     }
     if (!filtered.length) {
@@ -598,196 +564,150 @@
       return;
     }
     el.innerHTML = '';
-    for (const { k, d } of filtered) {
+    for (const d of filtered) {
       const isDraft = d.status === 'draft';
       const div = document.createElement('div');
       div.className = 'sub-card' + (isDraft ? ' no-click' : '');
       div.innerHTML = `
         <div class="sub-card-left">
           <div class="sub-card-name">${d.name}${badgeFor(d.status)}</div>
-          <div class="sub-card-meta">${d.projectName || d.task || 'Untitled'} &middot; ${d.submittedAt}</div>
+          <div class="sub-card-meta">${d.project_name || d.task || 'Untitled'} &middot; ${new Date(d.created_at).toLocaleString()}</div>
         </div>
         ${isDraft ? '<span style="font-size:12px;color:var(--gray-text);white-space:nowrap">Not yet submitted</span>' : ''}`;
-      if (!isDraft) {
-        div.onclick = () => (d.status === 'reviewed' || d.status === 'complete') ? showDiscussion(k) : showDetail(k);
-      }
+      if (!isDraft) div.onclick = () => (d.status === 'reviewed' || d.status === 'complete') ? showDiscussion(d) : showDetail(d);
       el.appendChild(div);
     }
   }
 
-  function filterSubmissions() {
-    renderSubmissions(document.getElementById('search-input').value);
-  }
+  function filterSubmissions() { renderSubmissions(document.getElementById('search-input').value); }
 
-  function showReviewList() {
+  async function showReviewList() {
     showScreen('screen-review-list');
     const searchEl = document.getElementById('search-input');
     if (searchEl) searchEl.value = '';
-    allSubmissions = [];
-    for (const k of storeList('submission:')) {
-      try { const val = storeGet(k); if (val) allSubmissions.push({ k, d: JSON.parse(val) }); } catch(e) {}
-    }
+    const el = document.getElementById('submissions-list-inner');
+    loading(el, 'Loading submissions…');
+    const { data, error } = await sb.from('submissions').select('*').order('created_at', { ascending: false });
+    allSubmissions = data || [];
     const rank = { submitted: 0, reviewed: 1, draft: 2, complete: 3 };
-    allSubmissions.sort((a, b) => (rank[a.d.status] || 0) - (rank[b.d.status] || 0));
+    allSubmissions.sort((a, b) => (rank[a.status] || 0) - (rank[b.status] || 0));
     renderSubmissions('');
-
     const fbSection = document.getElementById('feedback-list-section');
-    const fbKeys = storeList('feedback:');
-    if (fbKeys.length) {
+    const { data: fbData } = await sb.from('feedback').select('*').order('created_at', { ascending: false });
+    if (fbData && fbData.length) {
       let fbHtml = '<div class="section-divider" style="margin-top:32px"><span>Pilot process feedback</span></div>';
-      for (const k of fbKeys) {
-        try {
-          const f = JSON.parse(storeGet(k));
-          fbHtml += `<div class="feedback-card">
-            <div class="feedback-card-name">${f.name}</div>
-            <div class="feedback-card-meta">${f.role} &middot; ${f.submittedAt}</div>
-            <div class="feedback-card-body">${f.comments}</div>
-            ${f.rating ? `<div class="feedback-card-rating">${f.rating}</div>` : ''}
-          </div>`;
-        } catch(e) {}
+      for (const f of fbData) {
+        fbHtml += `<div class="feedback-card">
+          <div class="feedback-card-name">${f.name}</div>
+          <div class="feedback-card-meta">${f.role || ''} &middot; ${new Date(f.created_at).toLocaleString()}</div>
+          <div class="feedback-card-body">${f.comments}</div>
+          ${f.rating ? `<div class="feedback-card-rating">${f.rating}</div>` : ''}
+        </div>`;
       }
       fbSection.innerHTML = fbHtml;
-    } else {
-      fbSection.innerHTML = '';
-    }
+    } else { fbSection.innerHTML = ''; }
   }
 
   // ── REVIEW DETAIL ──
-  function showDetail(key) {
-    currentSubKey = key;
+  function showDetail(d) {
+    currentSubKey = d.id;
     showScreen('screen-review-detail');
     const el = document.getElementById('review-detail-inner');
-    const val = storeGet(key);
-    if (!val) { el.innerHTML = '<p class="empty-state">Could not load this submission.</p>'; return; }
-    const d = JSON.parse(val);
-
     const steps = [
-      { num:1, bg:'var(--green-light)', tc:'var(--green-dark)', label:'The task', fields:[{l:'Task',v:d.task},{l:'Purpose',v:d.taskPurpose}], ck:'task' },
+      { num:1, bg:'var(--green-light)', tc:'var(--green-dark)', label:'The task', fields:[{l:'Task',v:d.task},{l:'Purpose',v:d.task_purpose}], ck:'task' },
       { num:2, bg:'var(--purple-light)', tc:'var(--purple)', label:'The data', fields:[{l:'Inputs & sources',v:d.data}], ck:'data' },
-      { num:3, bg:'var(--amber-light)', tc:'var(--amber)', label:'The tools', fields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.toolsPurpose},{l:'Known limitations',v:d.toolsLimits}], ck:'tools' },
+      { num:3, bg:'var(--amber-light)', tc:'var(--amber)', label:'The tools', fields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.tools_purpose},{l:'Known limitations',v:d.tools_limits}], ck:'tools' },
       { num:4, bg:'var(--coral-light)', tc:'var(--coral)', label:'The expected outcome', fields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value provided — and to whom',v:d.sowhat}], ck:'outcome' },
       { num:5, bg:'var(--gray-light)', tc:'var(--gray-text)', label:'Questions & concerns', fields:[{l:'Doer\u2019s notes',v:d.notes}], ck:'notes' }
     ];
-
-    let html = `<h1>${d.name}\u2019s roadmap</h1>
-      <p class="page-sub">${d.projectName || d.task} &middot; ${d.submittedAt} ${badgeFor(d.status)}</p>`;
-
+    const comments = d.comments || {};
+    let html = `<h1>${d.name}\u2019s roadmap</h1><p class="page-sub">${d.project_name || d.task} &middot; ${new Date(d.created_at).toLocaleString()} ${badgeFor(d.status)}</p>`;
     for (const s of steps) {
-      const ec = (d.comments && d.comments[s.ck]) || '';
-      html += `<div class="review-step">
-        <div class="step-header"><span class="step-num" style="background:${s.bg};color:${s.tc}">${s.num}</span><span class="step-label">${s.label}</span></div>`;
-      for (const f of s.fields) {
-        html += `<div class="field-label">${f.l}</div><div class="field-value">${f.v || '<span class="field-empty">Not filled in</span>'}</div>`;
-      }
-      html += `<div class="comment-section"><label>Reviewer comment</label>
-        <textarea id="comment-${s.ck}" placeholder="Note anything to discuss\u2026">${ec}</textarea>
-      </div></div>`;
+      const ec = comments[s.ck] || '';
+      html += `<div class="review-step"><div class="step-header"><span class="step-num" style="background:${s.bg};color:${s.tc}">${s.num}</span><span class="step-label">${s.label}</span></div>`;
+      for (const f of s.fields) html += `<div class="field-label">${f.l}</div><div class="field-value">${f.v || '<span class="field-empty">Not filled in</span>'}</div>`;
+      html += `<div class="comment-section"><label>Reviewer comment</label><textarea id="comment-${s.ck}" placeholder="Note anything to discuss\u2026">${ec}</textarea></div></div>`;
     }
-
-    html += `<div class="btn-row">
-      <button class="btn btn-save" onclick="saveReview(false)">Save comments</button>
-      <button class="btn btn-discussion" onclick="saveReview(true)">Mark review complete — open discussion view ✓</button>
-    </div><div id="review-feedback" style="margin-top:12px"></div>`;
+    html += `<div class="btn-row"><button class="btn btn-save" onclick="saveReview(false)">Save comments</button><button class="btn btn-discussion" onclick="saveReview(true)">Mark review complete — open discussion view \u2713</button></div><div id="review-feedback" style="margin-top:12px"></div>`;
     el.innerHTML = html;
   }
 
-  function saveReview(complete) {
-    const val = storeGet(currentSubKey);
-    if (!val) { alert('Could not load submission.'); return; }
-    const d = JSON.parse(val);
-    d.comments = d.comments || {};
+  async function saveReview(complete) {
+    const comments = {};
     ['task','data','tools','outcome','notes'].forEach(k => {
       const el = document.getElementById('comment-' + k);
-      if (el) d.comments[k] = el.value.trim();
+      if (el) comments[k] = el.value.trim();
     });
-    if (complete) d.status = 'reviewed';
-    storeSet(currentSubKey, JSON.stringify(d));
-    if (complete) {
-      showDiscussion(currentSubKey);
+    const payload = { comments, updated_at: new Date().toISOString() };
+    if (complete) payload.status = 'reviewed';
+    const { error } = await sb.from('submissions').update(payload).eq('id', currentSubKey);
+    if (complete && !error) {
+      const { data } = await sb.from('submissions').select('*').eq('id', currentSubKey).single();
+      if (data) showDiscussion(data);
     } else {
       const fb = document.getElementById('review-feedback');
-      if (fb) { fb.innerHTML = '<div class="save-banner">✓ Comments saved.</div>'; setTimeout(() => { fb.innerHTML = ''; }, 2500); }
+      if (fb) { fb.innerHTML = '<div class="save-banner">\u2713 Comments saved.</div>'; setTimeout(() => { fb.innerHTML = ''; }, 2500); }
     }
   }
 
   // ── DISCUSSION ──
-  function showDiscussion(key) {
-    currentSubKey = key;
+  function showDiscussion(d) {
+    currentSubKey = d.id;
     showScreen('screen-discussion');
     const el = document.getElementById('discussion-inner');
-    const val = storeGet(key);
-    if (!val) { el.innerHTML = '<p class="empty-state">Could not load this submission.</p>'; return; }
-    const d = JSON.parse(val);
     const c = d.comments || {};
-
     const sections = [
-      { label:'The task', jFields:[{l:'Task',v:d.task},{l:'Purpose',v:d.taskPurpose}], ck:'task' },
+      { label:'The task', jFields:[{l:'Task',v:d.task},{l:'Purpose',v:d.task_purpose}], ck:'task' },
       { label:'The data', jFields:[{l:'Inputs & sources',v:d.data}], ck:'data' },
-      { label:'The tools', jFields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.toolsPurpose},{l:'Known limitations',v:d.toolsLimits}], ck:'tools' },
+      { label:'The tools', jFields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.tools_purpose},{l:'Known limitations',v:d.tools_limits}], ck:'tools' },
       { label:'The expected outcome', jFields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value — and to whom',v:d.sowhat}], ck:'outcome' },
       { label:'Questions & concerns', jFields:[{l:'Doer\u2019s notes',v:d.notes}], ck:'notes' }
     ];
-
-    let html = `<div class="discussion-header"><h2>Discussion view — ${d.name}</h2><p>${d.projectName || d.task} &middot; Use this together for your 15–30 min planning conversation</p></div>
-      <div class="discussion-prompt-card">
-        <h3>Discussion prompts</h3>
-        <ul>
-          <li>Walk me through your plan — what are you most confident about, and where do you have open questions?</li>
-          <li>What are the biggest risks or unknowns going into this task?</li>
-          <li>Where do you plan to use AI, and what will you do to validate its output?</li>
-        </ul>
-      </div>`;
-
+    let html = `<div class="discussion-header"><h2>Discussion view — ${d.name}</h2><p>${d.project_name || d.task} &middot; Use this together for your 15–30 min planning conversation</p></div>
+      <div class="discussion-prompt-card"><h3>Discussion prompts</h3><ul>
+        <li>Walk me through your plan — what are you most confident about, and where do you have open questions?</li>
+        <li>What are the biggest risks or unknowns going into this task?</li>
+        <li>Where do you plan to use AI, and what will you do to validate its output?</li>
+      </ul></div>`;
     for (const s of sections) {
       const comment = c[s.ck] || '';
-      html += `<div class="section-divider"><span>${s.label}</span></div>
-        <div class="discussion-grid">
-          <div class="discussion-col col-doer"><div class="discussion-col-header">Doer — ${d.name}</div><div class="discussion-col-body">`;
-      for (const f of s.jFields) {
-        html += `<div class="disc-field"><div class="disc-field-label">${f.l}</div><div class="disc-field-value">${f.v || '<span class="disc-empty">Not filled in</span>'}</div></div>`;
-      }
-      html += `</div></div>
-          <div class="discussion-col col-midlevel"><div class="discussion-col-header">Reviewer</div><div class="discussion-col-body">
-            <div class="disc-field"><div class="disc-field-label">Reviewer comment</div>
-              <div class="disc-field-value">${comment || '<span class="disc-empty">No comment added</span>'}</div>
-            </div>
-          </div></div>
-        </div>`;
+      html += `<div class="section-divider"><span>${s.label}</span></div><div class="discussion-grid">
+        <div class="discussion-col col-doer"><div class="discussion-col-header">Doer — ${d.name}</div><div class="discussion-col-body">`;
+      for (const f of s.jFields) html += `<div class="disc-field"><div class="disc-field-label">${f.l}</div><div class="disc-field-value">${f.v || '<span class="disc-empty">Not filled in</span>'}</div></div>`;
+      html += `</div></div><div class="discussion-col col-midlevel"><div class="discussion-col-header">Reviewer</div><div class="discussion-col-body">
+        <div class="disc-field"><div class="disc-field-label">Reviewer comment</div><div class="disc-field-value">${comment || '<span class="disc-empty">No comment added</span>'}</div></div>
+      </div></div></div>`;
     }
-
     const alreadyComplete = d.status === 'complete';
-    const existingNotes = d.discussionNotes || '';
+    const existingNotes = d.discussion_notes || '';
     html += `<div class="section-divider"><span>Discussion notes</span></div>
-    <div class="review-step">
-      <div class="field-label">Additional notes</div>
+    <div class="review-step"><div class="field-label">Additional notes</div>
       ${alreadyComplete
         ? `<div class="field-value" style="white-space:pre-wrap">${existingNotes || '<span class="field-empty">No notes recorded.</span>'}</div>`
         : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, coaching notes, or adjustments to the plan agreed on during the discussion…" style="min-height:100px">${existingNotes}</textarea>`
       }
     </div>
     <div class="btn-row" style="margin-top:8px">
-      <button class="btn btn-secondary" onclick="showReviewList()">← Back to all submissions</button>
+      <button class="btn btn-secondary" onclick="showReviewList()">\u2190 Back to all submissions</button>
       ${alreadyComplete
-        ? '<span style="font-size:13px;color:var(--green-dark);font-weight:500;display:inline-flex;align-items:center;gap:6px">✓ Discussion complete</span>'
-        : '<button class="btn btn-primary" onclick="markDiscussionComplete()">Mark discussion complete ✓</button>'
+        ? '<span style="font-size:13px;color:var(--green-dark);font-weight:500;display:inline-flex;align-items:center;gap:6px">\u2713 Discussion complete</span>'
+        : '<button class="btn btn-primary" onclick="markDiscussionComplete()">Mark discussion complete \u2713</button>'
       }
-    </div>
-    <div id="discussion-complete-feedback" style="margin-top:12px"></div>`;
+    </div><div id="discussion-complete-feedback" style="margin-top:12px"></div>`;
     el.innerHTML = html;
   }
 
-  function markDiscussionComplete() {
-    const val = storeGet(currentSubKey);
-    if (!val) return;
-    const d = JSON.parse(val);
-    d.status = 'complete';
+  async function markDiscussionComplete() {
     const notesEl = document.getElementById('discussion-notes');
-    if (notesEl) { d.discussionNotes = notesEl.value.trim(); notesEl.disabled = true; notesEl.style.opacity = '.7'; }
-    storeSet(currentSubKey, JSON.stringify(d));
-    const fb = document.getElementById('discussion-complete-feedback');
-    if (fb) fb.innerHTML = '<div class="success-banner">✓ Discussion marked complete. This record is now closed.</div>';
-    const btn = document.querySelector('#screen-discussion .btn-primary');
-    if (btn) { btn.disabled = true; btn.textContent = 'Discussion complete ✓'; }
+    const discussionNotes = notesEl ? notesEl.value.trim() : '';
+    const { error } = await sb.from('submissions').update({ status: 'complete', discussion_notes: discussionNotes, updated_at: new Date().toISOString() }).eq('id', currentSubKey);
+    if (!error) {
+      if (notesEl) { notesEl.disabled = true; notesEl.style.opacity = '.7'; }
+      const fb = document.getElementById('discussion-complete-feedback');
+      if (fb) fb.innerHTML = '<div class="success-banner">\u2713 Discussion marked complete. This record is now closed.</div>';
+      const btn = document.querySelector('#screen-discussion .btn-primary');
+      if (btn) { btn.disabled = true; btn.textContent = 'Discussion complete \u2713'; }
+    }
   }
 
   // ── FEEDBACK MODAL ──
@@ -796,15 +716,19 @@
     document.getElementById('fb-success').style.display = 'none';
   }
   function closeFeedbackModal() { document.getElementById('feedback-modal').classList.remove('open'); }
-  function submitFeedback() {
+  async function submitFeedback() {
     const name = document.getElementById('fb-name').value.trim();
     const comments = document.getElementById('fb-comments').value.trim();
     if (!name) { alert('Please enter your name.'); return; }
     if (!comments) { alert('Please share your thoughts before submitting.'); return; }
-    const data = { name, role: document.getElementById('fb-role').value.trim(), rating: document.getElementById('fb-rating').value, comments, submittedAt: new Date().toLocaleString() };
-    storeSet('feedback:' + name.replace(/\s+/g,'-').toLowerCase() + ':' + Date.now(), JSON.stringify(data));
-    document.getElementById('fb-success').style.display = 'block';
-    setTimeout(() => { closeFeedbackModal(); }, 1800);
+    const { error } = await sb.from('feedback').insert({
+      name, role: document.getElementById('fb-role').value.trim(),
+      rating: document.getElementById('fb-rating').value, comments
+    });
+    if (!error) {
+      document.getElementById('fb-success').style.display = 'block';
+      setTimeout(() => { closeFeedbackModal(); }, 1800);
+    }
   }
   document.getElementById('feedback-modal').addEventListener('click', function(e) { if (e.target === this) closeFeedbackModal(); });
 </script>
