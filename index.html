@@ -120,6 +120,8 @@
   .badge-reviewed { background: var(--purple-light); color: var(--purple); }
   .badge-complete { background: var(--blue-light); color: var(--blue); }
   .badge-discussion { background: var(--slate-light); color: var(--slate); }
+  .badge-revision { background: #FAEEDA; color: #854F0B; }
+  .badge-revised { background: #FDE8D8; color: #7A3000; }
 
   /* Review steps */
   .review-step { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--gray-mid); }
@@ -460,7 +462,7 @@
       div.className = 'sub-card';
       div.innerHTML = `
         <div class="sub-card-left">
-          <div class="sub-card-name">${d.project_name || d.task || 'Untitled roadmap'}${badgeFor(d.status)}</div>
+          <div class="sub-card-name">${d.project_name || d.task || 'Untitled roadmap'}${badgeFor(d)}</div>
           <div class="sub-card-meta">${d.task || ''} &middot; ${new Date(d.created_at).toLocaleString()}</div>
         </div>`;
       div.onclick = () => openDoerRoadmap(d);
@@ -497,14 +499,19 @@
     document.getElementById('j-notes').value = d.notes || '';
     document.getElementById('doer-heading').textContent = d.project_name || d.task || 'Task roadmap';
     document.getElementById('submit-feedback').innerHTML = '';
-    const isSubmitted = d.status !== 'draft';
+    const isSubmitted = d.status !== 'draft' && d.status !== 'needs_revision';
+    const needsRevision = d.status === 'needs_revision';
     ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
       document.getElementById(id).disabled = isSubmitted;
     });
     document.getElementById('save-draft-btn').style.display = isSubmitted ? 'none' : '';
     document.getElementById('submit-btn').disabled = isSubmitted;
-    document.getElementById('submit-btn').textContent = isSubmitted ? 'Submitted \u2713' : 'Submit roadmap';
-    if (isSubmitted) document.getElementById('doer-form-sub').textContent = 'This roadmap has been submitted and is now read-only.';
+    document.getElementById('submit-btn').textContent = isSubmitted ? 'Submitted \u2713' : needsRevision ? 'Resubmit roadmap' : 'Submit roadmap';
+    if (isSubmitted) {
+      document.getElementById('doer-form-sub').textContent = 'This roadmap has been submitted and is now read-only.';
+    } else if (needsRevision) {
+      document.getElementById('doer-form-sub').innerHTML = '<span style="background:#FAEEDA;color:#854F0B;padding:8px 12px;border-radius:8px;display:block;margin-bottom:8px">Your reviewer has requested revisions — update your roadmap and resubmit.</span>';
+    }
     const comments = d.comments || {};
     const hasComments = Object.values(comments).some(v => v);
     if (isSubmitted && hasComments) {
@@ -540,6 +547,18 @@
     const taskName = document.getElementById('j-task-name').value.trim();
     const projectName = document.getElementById('j-project-name').value.trim();
     if (!projectName && !taskName) { alert('Please fill in a project/roadmap title before saving.'); return; }
+
+    let currentRevisionCount = 0;
+    if (currentSubKey) {
+      const { data: existing } = await sb.from('submissions').select('revision_count, status').eq('id', currentSubKey).single();
+      if (existing) {
+        currentRevisionCount = existing.revision_count || 0;
+        if (status === 'submitted' && existing.status === 'needs_revision') {
+          currentRevisionCount += 1;
+        }
+      }
+    }
+
     const payload = {
       name: currentUser, status,
       project_name: projectName || taskName,
@@ -553,6 +572,7 @@
       quality: document.getElementById('j-quality').value.trim(),
       sowhat: document.getElementById('j-sowhat').value.trim(),
       notes: document.getElementById('j-notes').value.trim(),
+      revision_count: currentRevisionCount,
       updated_at: new Date().toISOString()
     };
     const fb = document.getElementById('submit-feedback');
@@ -565,27 +585,32 @@
       error = e;
       if (data) currentSubKey = data.id;
     }
-    if (error) { fb.innerHTML = '<div class="save-banner" style="background:#FCEBEB;color:#A32D2D">\u26A0\uFE0F Could not save — please try again.</div>'; return; }
+    if (error) { fb.innerHTML = '<div class="save-banner" style="background:#FCEBEB;color:#A32D2D">⚠️ Could not save — please try again.</div>'; return; }
     if (status === 'draft') {
-      fb.innerHTML = '<div class="save-banner">\u2713 Draft saved. You can return to this roadmap at any time from your dashboard.</div>';
+      fb.innerHTML = '<div class="save-banner">✓ Draft saved. You can return to this roadmap at any time from your dashboard.</div>';
     } else {
       ['j-project-name','j-task-name','j-task-purpose','j-data','j-tools','j-tools-purpose','j-tools-limits','j-outcome','j-quality','j-sowhat','j-notes'].forEach(id => {
         document.getElementById(id).disabled = true;
       });
       document.getElementById('save-draft-btn').style.display = 'none';
       document.getElementById('submit-btn').disabled = true;
-      document.getElementById('submit-btn').textContent = 'Submitted \u2713';
-      fb.innerHTML = '<div class="success-banner">\u2713 Roadmap submitted. Your reviewer can now view and comment on your plan.</div>';
+      document.getElementById('submit-btn').textContent = 'Submitted ✓';
+      fb.innerHTML = '<div class="success-banner">✓ Roadmap submitted. Your reviewer can now view and comment on your plan.</div>';
     }
   }
 
   // ── REVIEW LIST ──
-  function badgeFor(status) {
+  function badgeFor(d) {
+    const status = typeof d === 'string' ? d : d.status;
+    const revisionCount = typeof d === 'object' ? (d.revision_count || 0) : 0;
     const map = {
       draft: '<span class="badge badge-draft">Draft</span>',
-      submitted: '<span class="badge badge-submitted">Pending review</span>',
+      submitted: revisionCount > 0
+        ? '<span class="badge badge-revised">Pending review (revised)</span>'
+        : '<span class="badge badge-submitted">Pending review</span>',
       reviewed: '<span class="badge badge-reviewed">Reviewed</span>',
-      complete: '<span class="badge badge-complete">Complete</span>'
+      needs_revision: '<span class="badge badge-revision">Revision requested</span>',
+      complete: '<span class="badge badge-complete">Approved</span>'
     };
     return map[status] || '';
   }
@@ -609,11 +634,11 @@
       div.className = 'sub-card' + (isDraft ? ' no-click' : '');
       div.innerHTML = `
         <div class="sub-card-left">
-          <div class="sub-card-name">${d.name}${badgeFor(d.status)}</div>
+          <div class="sub-card-name">${d.name}${badgeFor(d)}</div>
           <div class="sub-card-meta">${d.project_name || d.task || 'Untitled'} &middot; ${new Date(d.created_at).toLocaleString()}</div>
         </div>
         ${isDraft ? '<span style="font-size:12px;color:var(--gray-text);white-space:nowrap">Not yet submitted</span>' : ''}`;
-      if (!isDraft) div.onclick = () => (d.status === 'reviewed' || d.status === 'complete') ? showDiscussion(d) : showDetail(d);
+      if (!isDraft) div.onclick = () => (['reviewed', 'complete', 'needs_revision'].includes(d.status)) ? showDiscussion(d) : showDetail(d);
       el.appendChild(div);
     }
   }
@@ -656,18 +681,27 @@
       { num:1, bg:'var(--green-light)', tc:'var(--green-dark)', label:'The task', fields:[{l:'Task',v:d.task},{l:'Purpose',v:d.task_purpose}], ck:'task' },
       { num:2, bg:'var(--purple-light)', tc:'var(--purple)', label:'The data', fields:[{l:'Inputs & sources',v:d.data}], ck:'data' },
       { num:3, bg:'var(--amber-light)', tc:'var(--amber)', label:'The tools', fields:[{l:'Tools planned',v:d.tools},{l:'Specific use of AI',v:d.tools_purpose},{l:'Known limitations',v:d.tools_limits}], ck:'tools' },
-      { num:4, bg:'var(--coral-light)', tc:'var(--coral)', label:'The expected outcome', fields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value provided — and to whom',v:d.sowhat}], ck:'outcome' },
+      { num:4, bg:'var(--coral-light)', tc:'var(--coral)', label:'The expected outcome', fields:[{l:'Deliverable',v:d.outcome},{l:'Expectations',v:d.quality},{l:'Value provided \u2014 and to whom',v:d.sowhat}], ck:'outcome' },
       { num:5, bg:'var(--gray-light)', tc:'var(--gray-text)', label:'Questions & concerns', fields:[{l:'Doer\u2019s notes',v:d.notes}], ck:'notes' }
     ];
     const comments = d.comments || {};
-    let html = `<h1>${d.name}\u2019s roadmap</h1><p class="page-sub">${d.project_name || d.task} &middot; ${new Date(d.created_at).toLocaleString()} ${badgeFor(d.status)}</p>`;
+    const revisionCount = d.revision_count || 0;
+    const revisionBanner = revisionCount > 0
+      ? `<div style="background:#FAEEDA;color:#854F0B;border-radius:8px;padding:12px 16px;font-size:14px;margin-bottom:16px;line-height:1.5">
+          \u21BA This is a revised submission (revision #${revisionCount}). Previous comments are shown below each section for reference.
+        </div>`
+      : '';
+    let html = `<h1>${d.name}\u2019s roadmap</h1><p class="page-sub">${d.project_name || d.task} &middot; ${new Date(d.created_at).toLocaleString()} ${badgeFor(d)}</p>${revisionBanner}`;
     for (const s of steps) {
       const ec = comments[s.ck] || '';
       html += `<div class="review-step"><div class="step-header"><span class="step-num" style="background:${s.bg};color:${s.tc}">${s.num}</span><span class="step-label">${s.label}</span></div>`;
       for (const f of s.fields) html += `<div class="field-label">${f.l}</div><div class="field-value">${f.v || '<span class="field-empty">Not filled in</span>'}</div>`;
-      html += `<div class="comment-section"><label>Reviewer comment</label><textarea id="comment-${s.ck}" placeholder="Note anything to discuss\u2026">${ec}</textarea></div></div>`;
+      if (revisionCount > 0 && ec) {
+        html += `<div style="margin-top:10px;padding:8px 12px;background:#dfe3e5;border-radius:6px;font-size:12px;color:#444f56"><strong>Previous comment:</strong> ${ec}</div>`;
+      }
+      html += `<div class="comment-section"><label>${revisionCount > 0 ? 'Updated comment' : 'Reviewer comment'}</label><textarea id="comment-${s.ck}" placeholder="Note anything to discuss\u2026">${revisionCount > 0 ? '' : ec}</textarea></div></div>`;
     }
-    html += `<div class="btn-row"><button class="btn btn-save" onclick="saveReview(false)">Save comments</button><button class="btn btn-discussion" onclick="saveReview(true)">Mark review complete — open discussion view \u2713</button></div><div id="review-feedback" style="margin-top:12px"></div>`;
+    html += `<div class="btn-row"><button class="btn btn-save" onclick="saveReview(false)">Save comments</button><button class="btn btn-discussion" onclick="saveReview(true)">Mark review complete \u2014 open discussion view \u2713</button></div><div id="review-feedback" style="margin-top:12px"></div>`;
     el.innerHTML = html;
   }
 
@@ -718,36 +752,53 @@
       </div></div></div>`;
     }
     const alreadyComplete = d.status === 'complete';
+    const alreadyRevision = d.status === 'needs_revision';
     const existingNotes = d.discussion_notes || '';
     html += `<div class="section-divider"><span>Discussion notes</span></div>
     <div class="review-step"><div class="field-label">Additional notes</div>
-      ${alreadyComplete
+      ${alreadyComplete || alreadyRevision
         ? `<div class="field-value" style="white-space:pre-wrap">${existingNotes || '<span class="field-empty">No notes recorded.</span>'}</div>`
-        : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, coaching notes, or adjustments to the plan agreed on during the discussion…" style="min-height:100px">${existingNotes}</textarea>`
+        : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, coaching notes, or adjustments to the plan agreed on during the discussion\u2026" style="min-height:100px">${existingNotes}</textarea>`
       }
     </div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-secondary" onclick="showReviewList()">\u2190 Back to all submissions</button>
       ${alreadyComplete
-        ? '<span style="font-size:13px;color:var(--green-dark);font-weight:500;display:inline-flex;align-items:center;gap:6px">\u2713 Discussion complete</span>'
-        : '<button class="btn btn-primary" onclick="markDiscussionComplete()">Mark discussion complete \u2713</button>'
+        ? '<span style="font-size:13px;color:#4A7A28;font-weight:500;display:inline-flex;align-items:center;gap:6px">\u2713 Approved</span>'
+        : alreadyRevision
+          ? '<span style="font-size:13px;color:#854F0B;font-weight:500;display:inline-flex;align-items:center;gap:6px">\u21BA Sent back for revision</span>'
+          : `<button class="btn btn-primary" onclick="approveDiscussion()" style="background:#4A7A28">\u2713 Approve</button>
+             <button class="btn" onclick="sendBackForRevision()" style="background:#FAEEDA;color:#854F0B;border:1px solid #F0D4A0">\u21BA Send back for revision</button>`
       }
     </div><div id="discussion-complete-feedback" style="margin-top:12px"></div>`;
     el.innerHTML = html;
   }
 
-  async function markDiscussionComplete() {
+  async function approveDiscussion() {
     const notesEl = document.getElementById('discussion-notes');
     const discussionNotes = notesEl ? notesEl.value.trim() : '';
     const { error } = await sb.from('submissions').update({ status: 'complete', discussion_notes: discussionNotes, updated_at: new Date().toISOString() }).eq('id', currentSubKey);
     if (!error) {
       if (notesEl) { notesEl.disabled = true; notesEl.style.opacity = '.7'; }
       const fb = document.getElementById('discussion-complete-feedback');
-      if (fb) fb.innerHTML = '<div class="success-banner">\u2713 Discussion marked complete. This record is now closed.</div>';
-      const btn = document.querySelector('#screen-discussion .btn-primary');
-      if (btn) { btn.disabled = true; btn.textContent = 'Discussion complete \u2713'; }
+      if (fb) fb.innerHTML = '<div class="success-banner">\u2713 Roadmap approved. This record is now closed.</div>';
+      document.querySelectorAll('#screen-discussion .btn-row .btn').forEach(b => b.remove());
     }
   }
+
+  async function sendBackForRevision() {
+    const notesEl = document.getElementById('discussion-notes');
+    const discussionNotes = notesEl ? notesEl.value.trim() : '';
+    const { error } = await sb.from('submissions').update({ status: 'needs_revision', discussion_notes: discussionNotes, updated_at: new Date().toISOString() }).eq('id', currentSubKey);
+    if (!error) {
+      if (notesEl) { notesEl.disabled = true; notesEl.style.opacity = '.7'; }
+      const fb = document.getElementById('discussion-complete-feedback');
+      if (fb) fb.innerHTML = '<div class="save-banner">\u21BA Sent back for revision. The doer will be able to update and resubmit their roadmap.</div>';
+      document.querySelectorAll('#screen-discussion .btn-row .btn:not(.btn-secondary)').forEach(b => b.remove());
+    }
+  }
+
+  async function markDiscussionComplete() { await approveDiscussion(); }
 
   // ── FEEDBACK MODAL ──
   function openFeedbackModal() {
