@@ -149,7 +149,6 @@
 
   .process-flow { display: flex; flex-direction: column; gap: 0; margin-bottom: 24px; }
   .flow-step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--gray-mid); position: relative; }
-  .flow-step.muted { background: #f9f9f9; opacity: .65; }
   .flow-step:first-child { border-radius: 10px 10px 0 0; }
   .flow-step:last-child { border-radius: 0 0 10px 10px; }
   .flow-step + .flow-step { border-top: none; }
@@ -228,7 +227,7 @@
     <div class="card" style="margin-bottom:24px">
       <div class="card-title">How the pilot works</div>
       <div class="process-flow">
-        <div class="flow-step muted">
+        <div class="flow-step">
           <span class="flow-step-num" style="background:#CDE3F2;color:#003087">1</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Initial task assignment & check-in</div>
@@ -260,7 +259,7 @@
             <span class="flow-checkin" style="background:#dfe3e5;color:#444f56">Reviewer + doer</span>
           </div>
         </div>
-        <div class="flow-step muted">
+        <div class="flow-step">
           <span class="flow-step-num" style="background:#0475bc;color:#fff">5</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Review deliverable & discuss lessons learned</div>
