@@ -149,6 +149,7 @@
 
   .process-flow { display: flex; flex-direction: column; gap: 0; margin-bottom: 24px; }
   .flow-step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; background: var(--card-bg); border: 1px solid var(--gray-mid); position: relative; }
+  .flow-step.muted { background: #f9f9f9; opacity: .65; }
   .flow-step:first-child { border-radius: 10px 10px 0 0; }
   .flow-step:last-child { border-radius: 0 0 10px 10px; }
   .flow-step + .flow-step { border-top: none; }
@@ -220,14 +221,14 @@
     <div class="jump-banner">
       <div class="jump-label">Elevate Cohort 6</div>
       <h2>The JUMP Framework</h2>
-      <p>Judgment, Understanding, Mastery, and Professional Development — a coaching-based approach that combines AI-enabled delivery, structured reflection, and mentor feedback to accelerate the development of professional judgment and core technical skills.</p>
+      <p>Judgment, Understanding, Mastery, and Professional Development — a guidance-based approach that combines AI-enabled delivery, structured reflection, and mentor feedback to accelerate the development of professional judgment and core technical skills.</p>
     </div>
     <h2 style="margin-bottom:6px">Task Roadmap Tool</h2>
-    <p class="page-sub">This tool supports the JUMP pilot by guiding doer through a structured planning process before starting a task, and giving reviewers a consistent framework for coaching conversations.</p>
+    <p class="page-sub">This tool supports the JUMP pilot by guiding doer through a structured planning process before starting a task, and giving reviewers a consistent framework for guidance conversations.</p>
     <div class="card" style="margin-bottom:24px">
       <div class="card-title">How the pilot works</div>
       <div class="process-flow">
-        <div class="flow-step">
+        <div class="flow-step muted">
           <span class="flow-step-num" style="background:#CDE3F2;color:#003087">1</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Initial task assignment & check-in</div>
@@ -247,7 +248,7 @@
           <span class="flow-step-num" style="background:#CCE4E8;color:#005361">3</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Review roadmap <span style="font-weight:400;color:var(--gray-text);font-size:13px">· ~10 min</span></div>
-            <div class="flow-step-desc">Reviewer looks over the doer's plan and adds comments on each section to prepare for the coaching conversation.</div>
+            <div class="flow-step-desc">Reviewer looks over the doer's plan and adds comments on each section to prepare for the guidance conversation.</div>
             <span class="flow-checkin" style="background:#CCE4E8;color:#005361">Reviewer</span>
           </div>
         </div>
@@ -255,11 +256,11 @@
           <span class="flow-step-num" style="background:#dfe3e5;color:#444f56">4</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Discussion <span style="font-weight:400;color:var(--gray-text);font-size:13px">· 15–30 min</span></div>
-            <div class="flow-step-desc">Doer and reviewer meet to discuss the plan side by side. Focus on alignment, open questions, coaching, and how the doer plans to use AI tools.</div>
+            <div class="flow-step-desc">Doer and reviewer meet to discuss the plan side by side. Focus on alignment, open questions, guidance, and structured reflection.</div>
             <span class="flow-checkin" style="background:#dfe3e5;color:#444f56">Reviewer + doer</span>
           </div>
         </div>
-        <div class="flow-step">
+        <div class="flow-step muted">
           <span class="flow-step-num" style="background:#0475bc;color:#fff">5</span>
           <div class="flow-step-content">
             <div class="flow-step-title">Review deliverable & discuss lessons learned</div>
@@ -740,7 +741,7 @@
       <div class="discussion-prompt-card"><h3>Discussion prompts</h3><ul>
         <li>Walk me through your plan — what are you most confident about, and where do you have open questions?</li>
         <li>What are the biggest risks or unknowns going into this task?</li>
-        <li>Where do you plan to use AI, and what will you do to validate its output?</li>
+        <li>Where did this task require professional judgment, and how did you approach those decisions?</li>
       </ul></div>`;
     for (const s of sections) {
       const comment = c[s.ck] || '';
@@ -758,7 +759,7 @@
     <div class="review-step"><div class="field-label">Additional notes</div>
       ${alreadyComplete || alreadyRevision
         ? `<div class="field-value" style="white-space:pre-wrap">${existingNotes || '<span class="field-empty">No notes recorded.</span>'}</div>`
-        : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, coaching notes, or adjustments to the plan agreed on during the discussion\u2026" style="min-height:100px">${existingNotes}</textarea>`
+        : `<textarea id="discussion-notes" placeholder="Capture any decisions, follow-up items, guidance notes, or adjustments to the plan agreed on during the discussion\u2026" style="min-height:100px">${existingNotes}</textarea>`
       }
     </div>
     <div class="btn-row" style="margin-top:8px">
