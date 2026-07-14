@@ -51,13 +51,16 @@
   /* Header */
   .site-header {
     background: #003087;
-    padding: 0 24px;
+    padding: 14px 24px;
     display: flex;
     align-items: center;
     gap: 16px;
-    height: 72px;
+    height: auto;
   }
-  .site-header .logo-img { height: 56px; width: auto; display: block; }
+  .site-header .logo { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: .08em; text-transform: uppercase; }
+  .site-header .hdivider { width: 1px; height: 20px; background: rgba(255,255,255,0.3); flex-shrink: 0; }
+  .site-header .htitle { font-size: 13px; color: rgba(255,255,255,0.7); cursor: pointer; transition: color .15s; }
+  .site-header .htitle:hover { color: #fff; }
   .site-header .spacer { flex: 1; }
   .feedback-trigger-btn { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; transition: background .15s; }
   .feedback-trigger-btn:hover { background: rgba(255,255,255,0.25); }
@@ -199,7 +202,9 @@
 <body>
 
 <header class="site-header">
-  <img src="JUMP_email_header.png" alt="JUMP Framework" class="logo-img" onclick="goHome()" style="cursor:pointer" />
+  <span class="logo">CDM Smith</span>
+  <div class="hdivider"></div>
+  <span class="htitle" onclick="goHome()">Elevate Cohort 6 — Pilot Tool</span>
   <div class="spacer"></div>
   <button class="feedback-trigger-btn" onclick="openFeedbackModal()">💬 Submit feedback on this pilot process</button>
 </header>
@@ -208,6 +213,8 @@
 
   <!-- HOME -->
   <div id="screen-home">
+    <img src="JUMP_email_header.png" alt="JUMP Framework" style="width:100%;border-radius:12px;display:block;margin-bottom:16px;" />
+
     <div class="jump-banner">
       <div class="jump-label">Elevate Cohort 6</div>
       <h2>The JUMP Framework</h2>
