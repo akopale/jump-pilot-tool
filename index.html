@@ -365,7 +365,7 @@
       <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-text);font-size:15px;pointer-events:none">🔍</span>
     </div>
     <div id="submissions-list-inner"></div>
-    <div id="feedback-list-section"></div>
+
   </div>
 
   <!-- REVIEW DETAIL -->
@@ -656,20 +656,7 @@
     const rank = { submitted: 0, reviewed: 1, draft: 2, complete: 3 };
     allSubmissions.sort((a, b) => (rank[a.status] || 0) - (rank[b.status] || 0));
     renderSubmissions('');
-    const fbSection = document.getElementById('feedback-list-section');
-    const { data: fbData } = await sb.from('feedback').select('*').order('created_at', { ascending: false });
-    if (fbData && fbData.length) {
-      let fbHtml = '<div class="section-divider" style="margin-top:32px"><span>Pilot process feedback</span></div>';
-      for (const f of fbData) {
-        fbHtml += `<div class="feedback-card">
-          <div class="feedback-card-name">${f.name}</div>
-          <div class="feedback-card-meta">${f.role || ''} &middot; ${new Date(f.created_at).toLocaleString()}</div>
-          <div class="feedback-card-body">${f.comments}</div>
-          ${f.rating ? `<div class="feedback-card-rating">${f.rating}</div>` : ''}
-        </div>`;
-      }
-      fbSection.innerHTML = fbHtml;
-    } else { fbSection.innerHTML = ''; }
+
   }
 
   // ── REVIEW DETAIL ──
