@@ -203,6 +203,25 @@
 </head>
 <body>
 
+<!-- PASSWORD GATE -->
+<div id="password-gate" style="min-height:100vh;background:#003087;display:flex;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#fff;border-radius:16px;padding:40px 36px;max-width:420px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+    <img src="JUMP_email_header.png" alt="JUMP Framework" style="width:100%;margin-bottom:28px;border-radius:8px;" />
+    <p style="font-size:14px;color:#667A85;margin-bottom:24px;line-height:1.6;">Enter the password provided in your email from the pilot team to access this tool.</p>
+    <input type="password" id="gate-password" placeholder="Enter password"
+      style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid #D3D1C9;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;text-align:center;"
+      onkeydown="if(event.key==='Enter')checkPassword()" />
+    <div id="gate-error" style="display:none;color:#993C1D;font-size:13px;margin-bottom:10px;">Incorrect password. Please try again.</div>
+    <button onclick="checkPassword()"
+      style="width:100%;background:#003087;color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+      Enter
+    </button>
+  </div>
+</div>
+
+<!-- MAIN SITE (hidden until password correct) -->
+<div id="main-site" style="display:none">
+
 <header class="site-header">
   <span class="logo">CDM Smith</span>
   <div class="hdivider"></div>
@@ -844,5 +863,31 @@
   }
   document.getElementById('feedback-modal').addEventListener('click', function(e) { if (e.target === this) closeFeedbackModal(); });
 </script>
+</div><!-- end main-site -->
+
+<script>
+  const SITE_PASSWORD = 'jump2026pilot';
+
+  function checkPassword() {
+    const val = document.getElementById('gate-password').value;
+    if (val === SITE_PASSWORD) {
+      document.getElementById('password-gate').style.display = 'none';
+      document.getElementById('main-site').style.display = 'block';
+      // Remember for session so they don't have to re-enter on refresh
+      sessionStorage.setItem('jump_auth', 'true');
+    } else {
+      document.getElementById('gate-error').style.display = 'block';
+      document.getElementById('gate-password').value = '';
+      document.getElementById('gate-password').focus();
+    }
+  }
+
+  // Check session on load
+  if (sessionStorage.getItem('jump_auth') === 'true') {
+    document.getElementById('password-gate').style.display = 'none';
+    document.getElementById('main-site').style.display = 'block';
+  }
+</script>
+
 </body>
 </html>
